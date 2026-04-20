@@ -19,10 +19,6 @@ image1 = load_image('assets/rotated.jpg').to(device) # DSC_0411
 angles = [0, 90, 180, 270]
 results = []
 
-gpu_start = torch.cuda.Event(enable_timing=True)
-gpu_end = torch.cuda.Event(enable_timing=True)
-gpu_start.record()
-
 for angle in angles:
     # rotate image0 by multiples of 90 degrees
     k = angle // 90
@@ -33,7 +29,12 @@ for angle in angles:
     feats1 = extractor.extract(image1)
 
     # run LightGlue on the feature sets
+    run_start = torch.cuda.Event(enable_timing=True)
+    run_end = torch.cuda.Event(enable_timing=True)
+    run_start.record()
     matches01 = matcher({'image0': feats0, 'image1': feats1})
+    run_end.record()
+    torch.cuda.synchronize()
 
     # remove batch dimension
     feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
@@ -59,10 +60,7 @@ for angle in angles:
     print(f"Angle: {angle} degrees")
     print(f"  Number of matches: {num_matches}")
     print(f"  Stop layer: {stop_layer}")
-
-gpu_end.record()
-torch.cuda.synchronize()
-print(f"\nTotal GPU time: {gpu_start.elapsed_time(gpu_end) / 1000:.4f} seconds")
+    print(f"  LightGlue GPU time: {run_start.elapsed_time(run_end) / 1000:.4f} seconds")
 
 # pick the angle with the highest number of matches
 best_result = max(results, key=lambda x: x["num_matches"])

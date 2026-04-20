@@ -1,6 +1,7 @@
 from lightglue import LightGlue, SuperPoint
 from lightglue.utils import load_image, rbd
 import torch
+import time
 ## for transformation matrix:
 import cv2
 import numpy as np
@@ -29,7 +30,9 @@ for angle in angles:
     feats1 = extractor.extract(image1)
 
     # run LightGlue on the feature sets
+    run_start = time.time()
     matches01 = matcher({'image0': feats0, 'image1': feats1})
+    run_end = time.time()
 
     # remove batch dimension
     feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
@@ -55,6 +58,7 @@ for angle in angles:
     print(f"Angle: {angle} degrees")
     print(f"  Number of matches: {num_matches}")
     print(f"  Stop layer: {stop_layer}")
+    print(f"  LightGlue CPU time: {run_end - run_start:.4f} seconds")
 
 # pick the angle with the highest number of matches
 best_result = max(results, key=lambda x: x["num_matches"])
@@ -84,5 +88,3 @@ else:
         print("Total matches used:", len(pts0))
         print("RANSAC inliers:", num_inliers)
         print("Inlier ratio:", inlier_ratio)
-
-# common view area model - use transformation matrix to find the
